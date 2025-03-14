@@ -38,7 +38,7 @@ The transformation process follows these steps:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/excel-transformer.git
+   git clone https://github.com/stoyanov787/ballistic-sport-excel-transformer.git
    cd excel-transformer
    ```
 
@@ -90,6 +90,3 @@ A complete list is available in the `requirements.txt` file.
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
