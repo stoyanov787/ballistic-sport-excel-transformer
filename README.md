@@ -39,7 +39,7 @@ The transformation process follows these steps:
 1. Clone the repository:
    ```
    git clone https://github.com/stoyanov787/ballistic-sport-excel-transformer.git
-   cd excel-transformer
+   cd Balistic
    ```
 
 2. Install the required packages:
