@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nike Data Transformer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .drop-zone {
+            border: 2px dashed #ccc;
+            transition: all 0.3s ease;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #3B82F6;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        .shadow-glow {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Nike inspired colors */
+        .nike-orange {
+            color: #ff5a00;
+        }
+        .bg-nike-orange {
+            background-color: #ff5a00;
+        }
+        .nike-black {
+            color: #111111;
+        }
+        .border-nike-orange {
+            border-color: #ff5a00;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <img src="{{ url_for('static', filename='logo.avif') }}" alt="Balistics Logo" class="h-8">
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="text-center mb-12 fade-in">
+            <h1 class="text-4xl font-extrabold mb-4 nike-black">Excel Transformer</h1>
+        </section>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-8 p-4 rounded-lg {{ 'bg-green-100 text-green-800' if category == 'success' else 'bg-red-100 text-red-800' }} fade-in">
+                        <div class="flex items-center">
+                            <i class="{{ 'fas fa-check-circle text-green-500' if category == 'success' else 'fas fa-exclamation-circle text-red-500' }} mr-3 text-xl"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- File Upload Section -->
+        <section class="bg-white rounded-xl shadow-lg p-8 mb-12 fade-in" style="transition-delay: 0.1s">
+            <h2 class="text-2xl font-bold mb-6 text-center nike-black">Upload Your Excel File</h2>
+            
+            <form action="{{ url_for('index') }}" method="post" enctype="multipart/form-data" id="upload-form">
+                <div class="drop-zone flex flex-col items-center justify-center rounded-lg p-10 cursor-pointer" id="drop-zone">
+                    <i class="fas fa-file-excel text-6xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-500 mb-4 text-center">Drag and drop your Excel file here<br>or click to select file</p>
+                    <p class="text-xs text-gray-400 mb-6">Only .xlsx and .xls files are supported. Max 16MB.</p>
+                    
+                    <div class="relative">
+                        <input type="file" name="file" id="file-input" accept=".xlsx, .xls" class="hidden">
+                        <button type="button" id="browse-button" class="py-3 px-6 bg-nike-orange text-white font-medium rounded-lg shadow-md hover:shadow-lg transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50">
+                            <i class="fas fa-folder-open mr-2"></i>Browse Files
+                        </button>
+                    </div>
+                    
+                    <div id="file-details" class="hidden mt-6 w-full max-w-md">
+                        <div class="bg-gray-100 rounded-lg p-4 flex items-center">
+                            <i class="fas fa-file-excel text-green-500 text-xl mr-3"></i>
+                            <div class="flex-1 truncate">
+                                <p id="file-name" class="font-medium truncate">filename.xlsx</p>
+                                <p id="file-size" class="text-xs text-gray-500">0 KB</p>
+                            </div>
+                            <button type="button" id="remove-file" class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 text-center">
+                    <button type="submit" id="transform-button" class="py-3 px-8 bg-nike-orange text-white font-bold rounded-lg shadow-md hover:shadow-lg transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-sync-alt mr-2"></i>Transform File
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Transformation History Section -->
+        {% if history %}
+        <section class="bg-white rounded-xl shadow-lg p-8 fade-in" style="transition-delay: 0.2s">
+            <h2 class="text-2xl font-bold mb-6 nike-black">Recent Transformations</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for item in history %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ item.timestamp }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm">{{ item.original_filename }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                {% if item.status == 'success' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i> Success
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <i class="fas fa-times-circle mr-1"></i> Failed
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                {% if item.status == 'success' %}
+                                <a href="{{ url_for('download', filename=item.output_filename) }}" class="text-blue-600 hover:text-blue-800 font-medium">
+                                    <i class="fas fa-download mr-1"></i> Download
+                                </a>
+                                {% else %}
+                                <span class="text-gray-400">{{ item.error_message }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const browseButton = document.getElementById('browse-button');
+            const fileDetails = document.getElementById('file-details');
+            const fileName = document.getElementById('file-name');
+            const fileSize = document.getElementById('file-size');
+            const removeFile = document.getElementById('remove-file');
+            const transformButton = document.getElementById('transform-button');
+            
+            // Disable transform button initially
+            transformButton.disabled = true;
+            
+            // Handle click on browse button
+            browseButton.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // Handle file selection
+            fileInput.addEventListener('change', function() {
+                handleFiles(this.files);
+            });
+            
+            // Handle drag and drop
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', function() {
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+            
+            // Handle remove file button
+            removeFile.addEventListener('click', function() {
+                fileInput.value = '';
+                fileDetails.classList.add('hidden');
+                transformButton.disabled = true;
+            });
+            
+            // Function to handle files
+            function handleFiles(files) {
+                if (files.length) {
+                    const file = files[0];
+                    const fileExt = file.name.split('.').pop().toLowerCase();
+                    
+                    // Check if file extension is allowed
+                    if (['xlsx', 'xls'].includes(fileExt)) {
+                        // Update file details
+                        fileName.textContent = file.name;
+                        fileSize.textContent = formatFileSize(file.size);
+                        fileDetails.classList.remove('hidden');
+                        transformButton.disabled = false;
+                        
+                        // Add glow effect to transform button
+                        transformButton.classList.add('shadow-glow');
+                        setTimeout(() => {
+                            transformButton.classList.remove('shadow-glow');
+                        }, 1500);
+                    } else {
+                        alert('Only Excel files (.xlsx, .xls) are allowed');
+                        fileInput.value = '';
+                    }
+                }
+            }
+            
+            // Function to format file size
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        });
+    </script>
+</body>
+</html>
